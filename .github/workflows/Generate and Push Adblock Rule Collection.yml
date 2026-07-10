@@ -1,0 +1,110 @@
+name: Generate and Push Adblock Rule Collection
+
+# ================= 1. 触发工作流的条件 =================
+on:
+  schedule:
+    # 【唯一任务】每 3 小时运行一次。
+    # 得益于 dns_cleaner.py 内部的增量缓存机制 (dns_cache.json.gz)，
+    # 脚本会自动挑出过期的域名进行网络检查，无需再单独设置每周日的低频任务。
+    - cron: "37 */3 * * *"
+  workflow_dispatch:  # 允许在 GitHub Actions 页面手动触发工作流
+
+# ================= 2. 并发控制 =================
+# 【关键】确保同一时间只有一个工作流在运行，新的提交会取消旧的运行，防止冲突
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate_and_push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 步骤 1: 签出仓库代码
+      - name: Checkout repository
+        # 【保留】按照您的要求，使用 v6 稳定版
+        uses: actions/checkout@v6
+        with:
+          # 【关键】使用个人访问令牌 (PAT_TOKEN) 进行签出，确保有写入权限
+          token: ${{ secrets.PAT_TOKEN }}
+
+      # 步骤 2: 设置 Python 环境
+      - name: Set up Python
+        # 【保留】按照您的要求，使用 v6 稳定版
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      # 步骤 3: 安装依赖库
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 步骤 4: 运行原规则生成脚本 (每次触发都会运行)
+      - name: Run Adblock Rule Generator
+        run: python Adblock_Rule_Generator.py
+
+      # ================= 步骤 5: 运行 DNS 清洗与 README 同步 =================
+      # 【核心逻辑】每次均运行。
+      # 原理：得益于 dns_cache.json.gz 增量缓存，脚本会自动判断哪些域名需要网络复查，哪些直接复用缓存。
+      # 目的：确保 README.md 中的规则数量与 ADBLOCK_RULE_COLLECTION.txt 的真实行数永远保持精准一致。
+      - name: Run DNS Cleaner & Sync README
+        run: |
+          echo "🚀 运行规则清洗与 README 状态同步..."
+          python dns_cleaner.py
+
+      # ================= 步骤 6: 提交并推送更改 (Amend 覆盖法优化) =================
+      - name: Commit and push changes (Amend Strategy)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 【关键修改】添加压缩版的缓存文件 dns_cache.json.gz
+          git add ADBLOCK_RULE_COLLECTION.txt README.md dns_cache.json.gz
+          
+          # 【清理旧文件】如果仓库中还存在未压缩的旧版 dns_cache.json，将其从 Git 中删除
+          if [ -f "dns_cache.json" ]; then
+            echo "🗑️ 检测到旧版未压缩缓存，正在移除..."
+            git rm -f dns_cache.json
+          fi
+          
+          # 检查是否有实际的内容变化，如果没有则直接退出，避免产生空提交
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          
+          # 【精简】因为已删除低频任务，统一使用一个清晰的 Commit Message
+          COMMIT_MSG="Update rules, clean dead domains & sync README (Auto-generated)"
+          
+          # ====================================================================
+          # 【核心优化：Amend 覆盖法】
+          # 目的：86万行的规则文件每次更新都会产生巨大的差异。如果每次都新建 commit，
+          # 几个月后仓库体积会膨胀到几个 GB，导致 clone 极慢甚至被 GitHub 封禁。
+          # 策略：使用 --amend 将新更改合并到上一次提交中，保持 Git 历史永远只有 1 条记录。
+          # ====================================================================
+          
+          # 【边缘保护】检查是否存在历史提交 (HEAD)。
+          # 如果是全新仓库的第一次运行，--amend 会报错，此时 fallback 到普通 commit。
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            echo "🔄 检测到历史提交，使用 --amend 覆盖上一次提交以防止仓库体积膨胀..."
+            git commit --amend -m "$COMMIT_MSG"
+          else
+            echo "🆕 未检测到历史提交，执行首次普通提交..."
+            git commit -m "$COMMIT_MSG"
+          fi
+          
+          # ====================================================================
+          # 【关键修复】带重试机制的强制推送 (git push --force)
+          # 原因：因为使用了 --amend 修改了本地的历史提交，这与远程仓库的历史产生了分歧，
+          # 所以必须使用 --force 强制覆盖远程的历史，否则 push 会被拒绝。
+          # ====================================================================
+          echo "🚀 开始强制推送到远程仓库..."
+          for i in 1 2 3; do
+            # 使用 --force 推送，如果成功则 break 跳出循环
+            git push --force origin main && break
+            
+            echo "⚠️ Push 失败，等待 5 秒后重试 ($i/3)..."
+            sleep 5
+          done
