@@ -1,0 +1,27 @@
+# custom_sources.txt
+# 在这里添加你需要补充的上游 Hosts/ABP 规则源，每行一个 URL
+https://raw.githubusercontent.com/SpiralGlobe6864/BAN-PCDN-ADGUARD/main/PCDN-BAN-AdGuard.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/doh-vpn-proxy-bypass.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.txt
+https://raw.githubusercontent.com/DickaHandsome/My-Ads-Rule/main/MyRule.txt
+https://raw.githubusercontent.com/qirui-bot/HyperADRules/master/dns.txt
+https://raw.githubusercontent.com/Menghuibanxian/AdguardHome/main/Black.txt
+https://raw.githubusercontent.com/qirui-bot/HyperADRules/master/allow.txt
+https://hblock.molinero.dev/hosts_adblock.txt
+https://gitlab.com/quidsup/notrack-blocklists/-/raw/master/trackers.hosts
+https://raw.githubusercontent.com/H-i-H/AdGuard-Home-Rules/main/Release/combined-rules.txt
+https://raw.githubusercontent.com/daboq11/ban-pcdn/main/Ban-pcdn.txt
+https://raw.githubusercontent.com/lisrain/adguard-home-config/master/output/filters.txt
+https://raw.githubusercontent.com/hululu1068/AdGuard-Rule/main/rule/all.txt
+https://raw.githubusercontent.com/cbuijs/adblocks/main/ultimate.adblock.txt
+https://raw.githubusercontent.com/smdx/AdGHome_Filter_List/main/AdGHome-PCDN.txt
+https://raw.githubusercontent.com/ammnt/DeadEnd/main/filter.txt
+https://raw.githubusercontent.com/afwfv/DD-AD/release/easylist.txt
+https://raw.githubusercontent.com/hl2guide/curated-adblock-lists/main/lists/trackers.txt
+https://raw.githubusercontent.com/qq5460168/666/master/dns.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.mini.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/popupads.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/dyndns.txt
+https://ascopes.github.io/dns-blocklist/blocklist.txt
+https://raw.githubusercontent.com/ppfeufer/adguard-filter-list/master/blocklist
+https://raw.githubusercontent.com/siankatabg/FuFu-AdGuard-blacklist/master/fufu-adguard-blacklist.txt
